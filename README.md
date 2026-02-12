@@ -74,19 +74,20 @@ The project uses GitHub Actions for automated builds:
 
 You can use the published image:
 
+**With Personal Access Token:**
 ```bash
 docker run -i --rm \
   -e TP_DOMAIN=your-domain.tpondemand.com \
-  -e TP_USERNAME=your-username \
-  -e TP_PASSWORD=your-password \
+  -e TP_TOKEN=your-personal-access-token \
   ghcr.io/aaronsb/apptio-target-process-mcp
 ```
 
 ### Environment Variables
 
+The server requires Personal Access Token authentication:
+
 - `TP_DOMAIN`: Your Targetprocess domain (e.g., company.tpondemand.com)
-- `TP_USERNAME`: Your Targetprocess username
-- `TP_PASSWORD`: Your Targetprocess password
+- `TP_TOKEN`: Your Targetprocess Personal Access Token
 
 ### Local Development with Docker
 
@@ -254,15 +255,35 @@ The server can be configured either through environment variables or a JSON conf
 
 ### Config File Format
 
+The server uses Personal Access Token authentication:
+
 ```json
 {
   "domain": "your-domain.tpondemand.com",
   "credentials": {
-    "username": "your-username",
-    "password": "your-password"
+    "token": "your-personal-access-token"
   }
 }
 ```
+
+### Creating a Personal Access Token
+
+To create a Personal Access Token in Targetprocess:
+1. Log in to your Targetprocess account
+2. Go to your user settings (click your avatar in the top-right corner)
+3. Navigate to "Settings > Authentication and Security > Personal Access Tokens"
+4. Click "Create Token" or "Generate New Token"
+5. Give your token a descriptive name (e.g., "MCP Server")
+6. Ensure you have the "Allow creating and using access tokens" role permission
+7. Copy the generated token immediately (it won't be shown again)
+8. Use this token in your configuration (it will be base64-encoded in format: `userId:tokenSecret`)
+
+Personal Access Token benefits:
+- Tokens can be revoked without changing your password
+- Tokens remain valid even after password changes
+- You can create multiple tokens for different applications
+- Tokens don't expose your password if accidentally committed to version control
+- More secure than Basic authentication, especially in SSO environments
 
 ## License
 

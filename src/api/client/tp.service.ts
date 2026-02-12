@@ -23,8 +23,7 @@ interface ApiErrorResponse {
 export interface TPServiceConfig {
   domain: string;
   credentials: {
-    username: string;
-    password: string;
+    token: string;
   };
   retry?: RetryConfig;
 }
@@ -34,7 +33,7 @@ export interface TPServiceConfig {
  */
 export class TPService {
   private readonly baseUrl: string;
-  private readonly auth: string;
+  private readonly token: string;
 
   private readonly retryConfig: RetryConfig;
 
@@ -189,13 +188,37 @@ export class TPService {
   }
 
   constructor(config: TPServiceConfig) {
-    const { domain, credentials: { username, password }, retry } = config;
+    const { domain, credentials, retry } = config;
     this.baseUrl = `https://${domain}/api/v1`;
-    this.auth = Buffer.from(`${username}:${password}`).toString('base64');
+
+    // Per TargetProcess API documentation:
+    // Personal Access Tokens are passed as query parameter ?access_token=TOKEN
+    if (!credentials.token) {
+      throw new McpError(
+        ErrorCode.InvalidRequest,
+        'Configuration must provide a Personal Access Token'
+      );
+    }
+
+    this.token = credentials.token;
+
     this.retryConfig = retry || {
       maxRetries: 3,
       delayMs: 1000,
       backoffFactor: 2
+    };
+  }
+
+  /**
+   * Adds authentication to a URL by appending the access_token query parameter
+   */
+  private addAuth(url: string): { url: string; headers: Record<string, string> } {
+    const separator = url.includes('?') ? '&' : '?';
+    return {
+      url: `${url}${separator}access_token=${this.token}`,
+      headers: {
+        'Accept': 'application/json'
+      }
     };
   }
 
@@ -363,12 +386,8 @@ export class TPService {
       }
 
       return await this.executeWithRetry(async () => {
-        const response = await fetch(`${this.baseUrl}/${validatedType}s?${params}`, {
-          headers: {
-            'Authorization': `Basic ${this.auth}`,
-            'Accept': 'application/json'
-          }
-        });
+        const { url, headers } = this.addAuth(`${this.baseUrl}/${validatedType}s?${params}`);
+        const response = await fetch(url, { headers });
 
         const data = await this.handleApiResponse<ApiResponse<T>>(
           response,
@@ -409,12 +428,8 @@ export class TPService {
       }
 
       return await this.executeWithRetry(async () => {
-        const response = await fetch(`${this.baseUrl}/${validatedType}s/${id}?${params}`, {
-          headers: {
-            'Authorization': `Basic ${this.auth}`,
-            'Accept': 'application/json'
-          }
-        });
+        const { url, headers } = this.addAuth(`${this.baseUrl}/${validatedType}s/${id}?${params}`);
+        const response = await fetch(url, { headers });
 
         return await this.handleApiResponse<T>(
           response,
@@ -445,13 +460,11 @@ export class TPService {
       const validatedType = await this.validateEntityType(type);
       
       return await this.executeWithRetry(async () => {
-        const response = await fetch(`${this.baseUrl}/${validatedType}s`, {
+        const { url, headers } = this.addAuth(`${this.baseUrl}/${validatedType}s`);
+        headers['Content-Type'] = 'application/json';
+        const response = await fetch(url, {
           method: 'POST',
-          headers: {
-            'Authorization': `Basic ${this.auth}`,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
+          headers,
           body: JSON.stringify(data)
         });
 
@@ -485,13 +498,11 @@ export class TPService {
       const validatedType = await this.validateEntityType(type);
       
       return await this.executeWithRetry(async () => {
-        const response = await fetch(`${this.baseUrl}/${validatedType}s/${id}`, {
+        const { url, headers } = this.addAuth(`${this.baseUrl}/${validatedType}s/${id}`);
+        headers['Content-Type'] = 'application/json';
+        const response = await fetch(url, {
           method: 'POST',
-          headers: {
-            'Authorization': `Basic ${this.auth}`,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
+          headers,
           body: JSON.stringify(data)
         });
 
@@ -549,12 +560,8 @@ export class TPService {
     try {
       return await this.executeWithRetry(async () => {
         // Explicitly request JSON format in the URL
-        const response = await fetch(`${this.baseUrl}/Index/meta?format=json`, {
-          headers: {
-            'Authorization': `Basic ${this.auth}`,
-            'Accept': 'application/json'
-          }
-        });
+        const { url, headers } = this.addAuth(`${this.baseUrl}/Index/meta?format=json`);
+        const response = await fetch(url, { headers });
 
         // Check if response is OK before trying to parse JSON
         if (!response.ok) {

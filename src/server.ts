@@ -8,6 +8,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 import { TPService, TPServiceConfig } from './api/client/tp.service.js';
 import { SearchTool } from './tools/search/search.tool.js';
@@ -16,30 +17,45 @@ import { CreateEntityTool } from './tools/entity/create.tool.js';
 import { UpdateEntityTool } from './tools/update/update.tool.js';
 import { InspectObjectTool } from './tools/inspect/inspect.tool.js';
 
+// Get the directory of the current module
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 function loadConfig(): TPServiceConfig {
   // Try environment variables first
-  if (process.env.TP_DOMAIN && process.env.TP_USERNAME && process.env.TP_PASSWORD) {
+  if (process.env.TP_DOMAIN && process.env.TP_TOKEN) {
     return {
       domain: process.env.TP_DOMAIN,
       credentials: {
-        username: process.env.TP_USERNAME,
-        password: process.env.TP_PASSWORD
+        token: process.env.TP_TOKEN
       }
     };
   }
 
-  // Fall back to config file
-  const configPath = path.join(process.cwd(), 'config', 'targetprocess.json');
+  // Fall back to config file - look relative to the built server location
+  // In development: build/server.js -> ../config/targetprocess.json
+  // The config should be at the project root level
+  const configPath = path.join(__dirname, '..', 'config', 'targetprocess.json');
   if (!fs.existsSync(configPath)) {
-    console.error('No configuration found. Please set environment variables (TP_DOMAIN, TP_USERNAME, TP_PASSWORD) or create config/targetprocess.json');
+    console.error('No configuration found. Please set environment variables (TP_DOMAIN and TP_TOKEN) or create config/targetprocess.json');
     throw new McpError(
       ErrorCode.InternalError,
-      'No configuration found. Please set environment variables (TP_DOMAIN, TP_USERNAME, TP_PASSWORD) or create config/targetprocess.json'
+      'No configuration found. Please set environment variables (TP_DOMAIN and TP_TOKEN) or create config/targetprocess.json'
     );
   }
 
   try {
-    return JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+
+    // Validate that config has a token
+    if (!config.credentials?.token) {
+      throw new McpError(
+        ErrorCode.InternalError,
+        'Configuration must provide a Personal Access Token. See https://www.ibm.com/docs/en/targetprocess/tp-dev-hub/saas?topic=v1-authentication for details.'
+      );
+    }
+
+    return config;
   } catch (error) {
     console.error(`Error parsing config file: ${error instanceof Error ? error.message : String(error)}`);
     throw new McpError(
