@@ -6,9 +6,6 @@ import {
   ListToolsRequestSchema,
   McpError,
 } from '@modelcontextprotocol/sdk/types.js';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
 
 import { TPService, TPServiceConfig } from './api/client/tp.service.js';
 import { SearchTool } from './tools/search/search.tool.js';
@@ -17,52 +14,22 @@ import { CreateEntityTool } from './tools/entity/create.tool.js';
 import { UpdateEntityTool } from './tools/update/update.tool.js';
 import { InspectObjectTool } from './tools/inspect/inspect.tool.js';
 
-// Get the directory of the current module
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 function loadConfig(): TPServiceConfig {
-  // Try environment variables first
-  if (process.env.TP_DOMAIN && process.env.TP_TOKEN) {
-    return {
-      domain: process.env.TP_DOMAIN,
-      credentials: {
-        token: process.env.TP_TOKEN
-      }
-    };
-  }
+  const domain = process.env.TP_DOMAIN;
+  const token = process.env.TP_TOKEN;
 
-  // Fall back to config file - look relative to the built server location
-  // In development: build/server.js -> ../config/targetprocess.json
-  // The config should be at the project root level
-  const configPath = path.join(__dirname, '..', 'config', 'targetprocess.json');
-  if (!fs.existsSync(configPath)) {
-    console.error('No configuration found. Please set environment variables (TP_DOMAIN and TP_TOKEN) or create config/targetprocess.json');
+  if (!domain || !token) {
     throw new McpError(
       ErrorCode.InternalError,
-      'No configuration found. Please set environment variables (TP_DOMAIN and TP_TOKEN) or create config/targetprocess.json'
+      'TP_DOMAIN and TP_TOKEN must be set in the MCP server environment configuration. ' +
+      'See https://www.ibm.com/docs/en/targetprocess/tp-dev-hub/saas?topic=v1-authentication for token details.'
     );
   }
 
-  try {
-    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-
-    // Validate that config has a token
-    if (!config.credentials?.token) {
-      throw new McpError(
-        ErrorCode.InternalError,
-        'Configuration must provide a Personal Access Token. See https://www.ibm.com/docs/en/targetprocess/tp-dev-hub/saas?topic=v1-authentication for details.'
-      );
-    }
-
-    return config;
-  } catch (error) {
-    console.error(`Error parsing config file: ${error instanceof Error ? error.message : String(error)}`);
-    throw new McpError(
-      ErrorCode.InternalError,
-      `Error parsing config file: ${error instanceof Error ? error.message : String(error)}`
-    );
-  }
+  return {
+    domain,
+    credentials: { token }
+  };
 }
 
 export class TargetProcessServer {

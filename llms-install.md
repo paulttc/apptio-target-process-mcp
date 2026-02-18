@@ -10,8 +10,7 @@ This guide provides detailed instructions for AI assistants like Cline to help u
 
 2. A Targetprocess account with:
    - Domain (e.g., company.tpondemand.com)
-   - Username
-   - Password
+   - Personal Access Token ([how to generate one](https://www.ibm.com/docs/en/targetprocess/tp-dev-hub/saas?topic=v1-authentication))
    - API access permissions
 
 ## One-Click Installation Steps
@@ -42,15 +41,12 @@ Edit: `~/.config/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_m
         "-e",
         "TP_DOMAIN",
         "-e",
-        "TP_USERNAME",
-        "-e",
-        "TP_PASSWORD",
+        "TP_TOKEN",
         "ghcr.io/aaronsb/apptio-target-process-mcp:latest"
       ],
       "env": {
         "TP_DOMAIN": "your-domain.tpondemand.com",
-        "TP_USERNAME": "your-username",
-        "TP_PASSWORD": "your-password"
+        "TP_TOKEN": "your-personal-access-token"
       },
       "autoApprove": [],
       "disabled": false
@@ -75,15 +71,12 @@ Edit: `~/.config/Claude/claude_desktop_config.json` (Linux/Mac) or `%APPDATA%\Cl
         "-e",
         "TP_DOMAIN",
         "-e",
-        "TP_USERNAME",
-        "-e",
-        "TP_PASSWORD",
+        "TP_TOKEN",
         "ghcr.io/aaronsb/apptio-target-process-mcp:latest"
       ],
       "env": {
         "TP_DOMAIN": "your-domain.tpondemand.com",
-        "TP_USERNAME": "your-username",
-        "TP_PASSWORD": "your-password"
+        "TP_TOKEN": "your-personal-access-token"
       },
       "autoApprove": [],
       "disabled": false
@@ -108,15 +101,12 @@ Edit: `~/.config/goose/config.json` (Linux/Mac) or `%APPDATA%\goose\config.json`
         "-e",
         "TP_DOMAIN",
         "-e",
-        "TP_USERNAME",
-        "-e",
-        "TP_PASSWORD",
+        "TP_TOKEN",
         "ghcr.io/aaronsb/apptio-target-process-mcp:latest"
       ],
       "env": {
         "TP_DOMAIN": "your-domain.tpondemand.com",
-        "TP_USERNAME": "your-username",
-        "TP_PASSWORD": "your-password"
+        "TP_TOKEN": "your-personal-access-token"
       },
       "autoApprove": [],
       "disabled": false
@@ -130,8 +120,7 @@ Edit: `~/.config/goose/config.json` (Linux/Mac) or `%APPDATA%\goose\config.json`
 Replace the following values in your configuration:
 
 - `TP_DOMAIN`: Your Targetprocess domain (e.g., company.tpondemand.com)
-- `TP_USERNAME`: Your Targetprocess username
-- `TP_PASSWORD`: Your Targetprocess password
+- `TP_TOKEN`: Your Targetprocess Personal Access Token ([how to generate one](https://www.ibm.com/docs/en/targetprocess/tp-dev-hub/saas?topic=v1-authentication))
 
 ### 4. Verification
 
@@ -169,28 +158,12 @@ cd apptio-target-process-mcp
 npm install
 ```
 
-3. Copy the example config:
-```bash
-cp config/targetprocess.example.json config/targetprocess.json
-```
-
-4. Edit `config/targetprocess.json` with your Targetprocess credentials:
-```json
-{
-  "domain": "your-domain.tpondemand.com",
-  "credentials": {
-    "username": "your-username",
-    "password": "your-password"
-  }
-}
-```
-
-5. Build the project:
+3. Build the project:
 ```bash
 npm run build
 ```
 
-6. Configure your AI assistant to use the local build:
+4. Configure your AI assistant to use the local build, passing credentials via the `env` block:
 
 ```json
 {
@@ -200,6 +173,10 @@ npm run build
       "args": [
         "/path/to/apptio-target-process-mcp/build/index.js"
       ],
+      "env": {
+        "TP_DOMAIN": "your-domain.tpondemand.com",
+        "TP_TOKEN": "your-personal-access-token"
+      },
       "autoApprove": [],
       "disabled": false
     }
@@ -218,9 +195,9 @@ npm run build
    - Solution: `docker ps` to check if Docker is running, verify credentials in your config
 
 2. **Authentication Error**
-   - Double-check your username and password
+   - Double-check your Personal Access Token value in the `env` block
    - Verify your account has API access permissions
-   - Solution: Test your credentials by logging into the Targetprocess web interface
+   - Solution: Regenerate the token from your Targetprocess profile settings and update the MCP configuration
 
 3. **Docker Image Not Found**
    - Run `docker pull ghcr.io/aaronsb/apptio-target-process-mcp:latest` to manually pull the image
